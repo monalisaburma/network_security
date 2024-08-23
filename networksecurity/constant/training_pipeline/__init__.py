@@ -20,7 +20,6 @@ SCHEMA_FILE_PATH = os.path.join("data_schema", "schema.yaml")
 SCHEMA_DROP_COLS = "drop_columns"
 SAVED_MODEL_DIR =os.path.join("saved_models")
 
-
 """
 Data Ingestion related constant start with DATA_INGESTION VAR NAME
 """
@@ -36,10 +35,12 @@ DATA_INGESTION_TRAIN_TEST_SPLIT_RATION: float = 0.2
 Data Validation related constant start with DATA_VALIDATION VAR NAME
 """
 
-"""
-Data Transformation related constant start with DATA_TRANSFORMATIOPN VAR NAME
-"""
 
 """
-Model Trainer related constant start with MODEL_TRAINER VAR NAME
+Data Transformation related constant start with DATA_TRANSFORMATION VAR NAME
+"""
+
+
+"""
+Model Trainer related constant start with MODE TRAINER VAR NAME
 """
