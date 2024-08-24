@@ -33,8 +33,8 @@ class DataIngestionConfig:
         
     
 class DataValidationConfig:
-    def __init__(self):
-        pass
+    def __init__(self, training_pipeline_config):
+        
     
 
 class DataTransformationConfig:
