@@ -1,85 +1,89 @@
-from datetime import datetime
 import os
-from networksecurity.constant import training_pipeline
+import sys
 
-print(training_pipeline.PIPELINE_NAME)
-print(training_pipeline.ARTIFACT_DIR)
+from networksecurity.exception.exception import NetworkSecurityException 
+from networksecurity.logger.logger import logging
 
-class TrainingPipelineConfig:
-    def __init__(self,timestamp=datetime.now()):
-        timestamp=timestamp.strftime("%m_%d_%Y_%H_%M_%S")
-        self.pipeline_name=training_pipeline.PIPELINE_NAME
-        self.artifact_name=training_pipeline.ARTIFACT_DIR
-        self.artifact_dir=os.path.join(self.artifact_name,timestamp)
-        self.timestamp: str=timestamp
-        
-class DataIngestionConfig:
-    def __init__(self,training_pipeline_config:TrainingPipelineConfig):
-        self.data_ingestion_dir: str = os.path.join(
-                training_pipeline_config.artifact_dir, training_pipeline.DATA_INGESTION_DIR_NAME
-            )
-        self.feature_store_file_path: str = os.path.join(
-                self.data_ingestion_dir, training_pipeline.DATA_INGESTION_FEATURE_STORE_DIR, training_pipeline.FILE_NAME
-            )
-        self.training_file_path: str = os.path.join(
-                self.data_ingestion_dir, training_pipeline.DATA_INGESTION_INGESTED_DIR, training_pipeline.TRAIN_FILE_NAME
-            )
-        self.testing_file_path: str = os.path.join(
-                self.data_ingestion_dir, training_pipeline.DATA_INGESTION_INGESTED_DIR, training_pipeline.TEST_FILE_NAME
-            )
-        self.train_test_split_ratio: float = training_pipeline.DATA_INGESTION_TRAIN_TEST_SPLIT_RATION
-        self.collection_name: str = training_pipeline.DATA_INGESTION_COLLECTION_NAME
-        self.database_name: str = training_pipeline.DATA_INGESTION_DATABASE_NAME
-        
-    
-class DataValidationConfig:
-    def __init__(self,training_pipeline_config:TrainingPipelineConfig):
-        self.data_validation_dir: str = os.path.join( training_pipeline_config.artifact_dir, training_pipeline.DATA_VALIDATION_DIR_NAME)
-        self.valid_data_dir: str = os.path.join(self.data_validation_dir, training_pipeline.DATA_VALIDATION_VALID_DIR)
-        self.invalid_data_dir: str = os.path.join(self.data_validation_dir, training_pipeline.DATA_VALIDATION_INVALID_DIR)
-        self.valid_train_file_path: str = os.path.join(self.valid_data_dir, training_pipeline.TRAIN_FILE_NAME)
-        self.valid_test_file_path: str = os.path.join(self.valid_data_dir, training_pipeline.TEST_FILE_NAME)
-        self.invalid_train_file_path: str = os.path.join(self.invalid_data_dir, training_pipeline.TRAIN_FILE_NAME)
-        self.invalid_test_file_path: str = os.path.join(self.invalid_data_dir, training_pipeline.TEST_FILE_NAME)
-        self.drift_report_file_path: str = os.path.join(
-            self.data_validation_dir,
-            training_pipeline.DATA_VALIDATION_DRIFT_REPORT_DIR,
-            training_pipeline.DATA_VALIDATION_DRIFT_REPORT_FILE_NAME,
-        )
+from networksecurity.entity.artifact_entity import DataTransformationArtifact,ModelTrainerArtifact
+from networksecurity.entity.config_entity import ModelTrainerConfig
 
-        
-class DataTransformationConfig:
-     def __init__(self,training_pipeline_config:TrainingPipelineConfig):
-        self.data_transformation_dir: str = os.path.join( training_pipeline_config.artifact_dir,training_pipeline.DATA_TRANSFORMATION_DIR_NAME )
-        self.transformed_train_file_path: str = os.path.join( self.data_transformation_dir,training_pipeline.DATA_TRANSFORMATION_TRANSFORMED_DATA_DIR,
-            training_pipeline.TRAIN_FILE_NAME.replace("csv", "npy"),)
-        self.transformed_test_file_path: str = os.path.join(self.data_transformation_dir,  training_pipeline.DATA_TRANSFORMATION_TRANSFORMED_DATA_DIR,
-            training_pipeline.TEST_FILE_NAME.replace("csv", "npy"), )
-        self.transformed_object_file_path: str = os.path.join( self.data_transformation_dir, training_pipeline.DATA_TRANSFORMATION_TRANSFORMED_OBJECT_DIR,
-            training_pipeline.PREPROCESSING_OBJECT_FILE_NAME,)
+from xgboost import XGBClassifier
 
-class ModelTrainerConfig:
-    def __init__(self,training_pipeline_config:TrainingPipelineConfig):
-        self.model_trainer_dir: str = os.path.join(
-            training_pipeline_config.artifact_dir, training_pipeline.MODEL_TRAINER_DIR_NAME
-        )
-        self.trained_model_file_path: str = os.path.join(
-            self.model_trainer_dir, training_pipeline.MODEL_TRAINER_TRAINED_MODEL_DIR, 
-            training_pipeline.MODEL_FILE_NAME
-        )
-        self.expected_accuracy: float = training_pipeline.MODEL_TRAINER_EXPECTED_SCORE
-        self.overfitting_underfitting_threshold = training_pipeline.MODEL_TRAINER_OVER_FIITING_UNDER_FITTING_THRESHOLD
+from networksecurity.utils.ml_utils.model.estimator import NetworkModel
+from networksecurity.utils.main_utils.utils import save_object,load_object
+from networksecurity.utils.main_utils.utils import load_numpy_array_data
+from networksecurity.utils.ml_utils.metric.classification_metric import get_classification_score
 
-    
-class ModelEvaluationConfig:
-    def __init__(self,training_pipeline_config):
-        self.model_evaluation_dir: str = os.path.join(
-            training_pipeline_config.artifact_dir, training_pipeline.MODEL_EVALUATION_DIR_NAME
-        )
-        self.report_file_path = os.path.join(self.model_evaluation_dir,training_pipeline.MODEL_EVALUATION_REPORT_NAME)
-        self.change_threshold = training_pipeline.MODEL_EVALUATION_CHANGED_THRESHOLD_SCORE
-        
-    
-class ModelPusherConfig:
-     def __init__(self):
+
+
+class ModelTrainer:
+
+    def __init__(self,model_trainer_config:ModelTrainerConfig,
+        data_transformation_artifact:DataTransformationArtifact):
+        try:
+            self.model_trainer_config=model_trainer_config
+            self.data_transformation_artifact=data_transformation_artifact
+        except Exception as e:
+            raise NetworkSecurityException(e,sys)
+
+    def perform_hyper_parameter_tunig(self):
         pass
+    
+
+    def train_model(self,x_train,y_train):
+        try:
+            xgb_clf = XGBClassifier()
+            xgb_clf.fit(x_train,y_train)
+            return xgb_clf
+        except Exception as e:
+            raise e
+    
+    def initiate_model_trainer(self)->ModelTrainerArtifact:
+        try:
+            train_file_path = self.data_transformation_artifact.transformed_train_file_path
+            test_file_path = self.data_transformation_artifact.transformed_test_file_path
+
+            #loading training array and testing array
+            train_arr = load_numpy_array_data(train_file_path)
+            test_arr = load_numpy_array_data(test_file_path)
+
+            x_train, y_train, x_test, y_test = (
+                train_arr[:, :-1],
+                train_arr[:, -1],
+                test_arr[:, :-1],
+                test_arr[:, -1],
+            )
+
+            model = self.train_model(x_train, y_train)
+            y_train_pred = model.predict(x_train)
+            classification_train_metric =  get_classification_score(y_true=y_train, y_pred=y_train_pred)
+            
+            if classification_train_metric.f1_score<=self.model_trainer_config.expected_accuracy:
+                raise Exception("Trained model is not good to provide expected accuracy")
+            
+            y_test_pred = model.predict(x_test)
+            classification_test_metric = get_classification_score(y_true=y_test, y_pred=y_test_pred)
+
+
+            #Overfitting and Underfitting
+            diff = abs(classification_train_metric.f1_score-classification_test_metric.f1_score)
+            
+            if diff>self.model_trainer_config.overfitting_underfitting_threshold:
+                raise Exception("Model is not good try to do more experimentation.")
+
+            preprocessor = load_object(file_path=self.data_transformation_artifact.transformed_object_file_path)
+            
+            model_dir_path = os.path.dirname(self.model_trainer_config.trained_model_file_path)
+            os.makedirs(model_dir_path,exist_ok=True)
+            Network_Model = NetworkModel(preprocessor=preprocessor,model=model)
+            save_object(self.model_trainer_config.trained_model_file_path, obj=Network_Model)
+
+            #model trainer artifact
+
+            model_trainer_artifact = ModelTrainerArtifact(trained_model_file_path=self.model_trainer_config.trained_model_file_path, 
+            train_metric_artifact=classification_train_metric,
+            test_metric_artifact=classification_test_metric)
+            logging.info(f"Model trainer artifact: {model_trainer_artifact}")
+            return model_trainer_artifact
+        except Exception as e:
+            raise NetworkSecurityException(e,sys)
