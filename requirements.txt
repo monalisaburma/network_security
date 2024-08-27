@@ -8,5 +8,7 @@ pyyaml
 xgboost
 fastapi
 uvicorn
+ipykernel
+apache-airflow
 
 -e .
