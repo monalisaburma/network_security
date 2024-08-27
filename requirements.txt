@@ -6,5 +6,7 @@ pymongo
 dill
 pyyaml
 xgboost
+fastapi
+uvicorn
 
 -e .
