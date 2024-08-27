@@ -1,8 +1,10 @@
 python-dotenv
 pandas
 numpy
-certifi
 pymongo
+certifi
+pymongo[srv]
+scikit-learn
 dill
 pyyaml
 xgboost
@@ -10,5 +12,7 @@ fastapi
 uvicorn
 ipykernel
 apache-airflow
+mlflow
+dvc
 
 -e .
