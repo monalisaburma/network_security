@@ -1,4 +1,4 @@
-from setuptools import find_packages,setup  # find_package = it will check all __init__ files.
+from setuptools import find_packages,setup
 from typing import List
 
 def get_requirements()->List[str]:
